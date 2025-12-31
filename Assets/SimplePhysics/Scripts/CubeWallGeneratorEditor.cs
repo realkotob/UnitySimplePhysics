@@ -13,23 +13,19 @@ public class CubeWallGenerator : MonoBehaviour
     public GameObject cubePrefab;
     public float spacing = 0f;
 
-    [ContextMenu("Generate Cubes")]
-    void Generate()
-    {
 
+
+    [ContextMenu("Generate Cubes")]
+    void GenerateRuntimeSafe()
+    {
         if (cubePrefab == null)
         {
             Debug.LogError("Cube Prefab not assigned");
             return;
         }
 
-        GameObject parent = new GameObject("GeneratedCubes");
-        Undo.RegisterCreatedObjectUndo(parent, "Create Cube Parent");
-
+        var parent = new GameObject("GeneratedCubes");
         parent.transform.SetParent(transform, false);
-        parent.transform.localPosition = Vector3.zero;
-        parent.transform.localRotation = Quaternion.identity;
-        parent.transform.localScale = Vector3.one;
 
         float step = 1f + spacing;
 
@@ -39,10 +35,7 @@ public class CubeWallGenerator : MonoBehaviour
                 {
                     Vector3 localPos = new Vector3(x, y, z) * step;
 
-                    GameObject cube = (GameObject)PrefabUtility.InstantiatePrefab(cubePrefab);
-                    Undo.RegisterCreatedObjectUndo(cube, "Create Cube");
-
-                    cube.transform.SetParent(parent.transform, false);
+                    var cube = Instantiate(cubePrefab, parent.transform);
                     cube.transform.localPosition = localPos;
                     cube.transform.localRotation = Quaternion.identity;
                 }
