@@ -18,7 +18,7 @@ EditorBuildSettings:
     path: Assets/SimplePhysics/Scenes/Cloth.unity
     guid: db8994531bea2f54a871c630ce082b49
   - enabled: 1
-    path: Assets/SimplePhysics/Scenes/SoftBody.unity
+    path: Assets/SimplePhysics/Scenes/SoftRect.unity
     guid: 41bedf46f53b57440af1e197b90612b7
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}

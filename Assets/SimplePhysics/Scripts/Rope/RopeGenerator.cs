@@ -8,6 +8,9 @@ public class RopeGenerator : MonoBehaviour
     public float spacing = 0.25f;
     public Material ropeMaterial;
 
+    [Header("Opetions")]
+    public bool lockTwist = true;
+
     [ContextMenu("Generate Rope")]
     public void GenerateRope()
     {
@@ -52,7 +55,11 @@ public class RopeGenerator : MonoBehaviour
 
                 j.angularXMotion = ConfigurableJointMotion.Free;
                 j.angularYMotion = ConfigurableJointMotion.Free;
-                j.angularZMotion = ConfigurableJointMotion.Free;
+
+                if(lockTwist)
+                    j.angularZMotion = ConfigurableJointMotion.Locked;
+                else
+                    j.angularZMotion = ConfigurableJointMotion.Free;
 
                 j.enableCollision = false;
                 j.projectionMode = JointProjectionMode.PositionAndRotation;
