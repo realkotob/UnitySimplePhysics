@@ -1,3 +1,4 @@
+using NUnit.Framework;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -12,6 +13,10 @@ public class SoftRectGenerator : MonoBehaviour
 
     [Header("Spacing")]
     public float spacing = 0.25f;
+
+    [Header("Options")]
+    public Material surfaceMaterial;
+    public Material lineMaterial;
 
     [Header("Joint Drives - Linear")]
     public float linearStrength = 2000f;
@@ -38,6 +43,12 @@ public class SoftRectGenerator : MonoBehaviour
             return;
         }
 
+        if (!lineMaterial)
+        {
+            Debug.LogError("Line Material not assigned");
+            return;
+        }
+
         if (xCount <= 0 || yCount <= 0 || zCount <= 0)
         {
             Debug.LogError("xCount, yCount and zCount must be greater than zero");
@@ -46,6 +57,8 @@ public class SoftRectGenerator : MonoBehaviour
 
         var parent = new GameObject("SoftRect");
         parent.transform.SetParent(transform, false);
+
+        var softRect = parent.AddComponent<SoftRect>();
 
         var all = new List<Transform>(xCount * yCount * zCount);
 
@@ -60,10 +73,7 @@ public class SoftRectGenerator : MonoBehaviour
                     var seg = Instantiate(spherePrefab, parent.transform);
                     seg.name = $"Seg_{x:00}_{y:00}_{z:00}";
 
-                    // Local grid layout:
-                    // X -> right
-                    // -Y -> downward (hanging behavior)
-                    // Z -> forward
+
                     seg.transform.localPosition = new Vector3(
                         x * spacing,
                         -y * spacing,
@@ -74,29 +84,20 @@ public class SoftRectGenerator : MonoBehaviour
                     all.Add(seg.transform);
 
                     var rb = seg.GetComponent<Rigidbody>();
-                    if (!rb)
-                        rb = seg.AddComponent<Rigidbody>();
+                    if (!rb) rb = seg.AddComponent<Rigidbody>();
 
                     bodies[x, y, z] = rb;
 
-                    // Connect only to already created neighbors
-                    // to avoid duplicate joints
 
-                    if (x > 0)
-                        CreateJoint(seg.gameObject, bodies[x - 1, y, z]);
+                    if (x > 0) CreateJoint(seg.gameObject, bodies[x - 1, y, z]);
+                    if (y > 0) CreateJoint(seg.gameObject, bodies[x, y - 1, z]);
+                    if (z > 0) CreateJoint(seg.gameObject, bodies[x, y, z - 1]);
 
-                    if (y > 0)
-                        CreateJoint(seg.gameObject, bodies[x, y - 1, z]);
-
-                    if (z > 0)
-                        CreateJoint(seg.gameObject, bodies[x, y, z - 1]);
                 }
             }
         }
 
-        // Example for later extension:
-        // var softRect = parent.AddComponent<SoftRect>();
-        // softRect.Init(all, xCount, yCount, zCount);
+        softRect.Init(all, xCount, yCount, zCount, lineMaterial, surfaceMaterial);
     }
 
     private void CreateJoint(GameObject obj, Rigidbody connected)
