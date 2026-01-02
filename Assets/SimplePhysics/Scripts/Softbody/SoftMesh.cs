@@ -1,5 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
+using System.Linq;
+
 
 [DisallowMultipleComponent]
 public class SoftMesh : MonoBehaviour
@@ -33,6 +35,11 @@ public class SoftMesh : MonoBehaviour
     public bool addMeshCollider = true;
     public bool meshColliderConvex = false;
     MeshCollider _meshCollider;
+
+    public int impulseNearestN = 6;
+    public float impulseScale = 1f;
+
+    Rigidbody[] _bodies;
 
 
     public bool showRBs = true;
@@ -177,6 +184,9 @@ public class SoftMesh : MonoBehaviour
         var edges = BuildEdges(_triangles, _originalToUnique);
         foreach (var e in edges)
             CreateJoint(bodies[e.b], bodies[e.a]);
+
+
+        _bodies = bodies;
     }
     void DeformMesh()
     {
@@ -201,7 +211,6 @@ public class SoftMesh : MonoBehaviour
         _meshCollider.sharedMesh = null;
         _meshCollider.sharedMesh = _mesh;
     }
-
     private void ApplyShowRBs(bool visible)
     {
         if (_uniqueToSphere == null || _uniqueToSphere.Length == 0) return;
@@ -286,7 +295,6 @@ public class SoftMesh : MonoBehaviour
             else { this.a = b; this.b = a; }
         }
     }
-
     sealed class EdgeComparer : IEqualityComparer<Edge>
     {
         public bool Equals(Edge x, Edge y) => x.a == y.a && x.b == y.b;
@@ -302,7 +310,6 @@ public class SoftMesh : MonoBehaviour
             }
         }
     }
-
     HashSet<Edge> BuildEdges(int[] tris, int[] map)
     {
         var set = new HashSet<Edge>(new EdgeComparer());
@@ -320,7 +327,6 @@ public class SoftMesh : MonoBehaviour
 
         return set;
     }
-
     void BuildUniqueVertices(Vector3[] verts, out int[] originalToUnique, out List<Vector3> uniqueVerts)
     {
         originalToUnique = new int[verts.Length];
@@ -351,6 +357,36 @@ public class SoftMesh : MonoBehaviour
     }
 
 
+    // --------------- Collision Response ----------------
+    void OnCollisionEnter(Collision c) => RelayImpulse(c);
+    //void OnCollisionStay(Collision c) => RelayImpulse(c);
+    void RelayImpulse(Collision c)
+    {
+        if (_bodies == null || _bodies.Length == 0) return;
+        if (c.contactCount == 0) return;
+
+        Vector3 impulse = c.impulse * impulseScale;
+        if (impulse.sqrMagnitude < 1e-8f) return;
+
+        Vector3 p = c.contacts[0].point;
+
+        int n = Mathf.Min(impulseNearestN, _bodies.Length);
+
+        var nearest = _bodies
+            .Where(rb => rb != null && !rb.isKinematic)
+            .OrderBy(rb => (rb.worldCenterOfMass - p).sqrMagnitude)
+            .Take(n);
+
+        Vector3 per = impulse / n;
+
+        foreach (var rb in nearest)
+        {
+            rb.AddForceAtPosition(-per, p, ForceMode.Impulse);
+        }
+    }
+
+
+    // ---------------- Gizmos ----------------
     private void OnDrawGizmosSelected()
     {
         if (!spherePrefab) return;
