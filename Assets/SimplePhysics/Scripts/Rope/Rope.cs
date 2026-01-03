@@ -12,10 +12,10 @@ public class Rope : MonoBehaviour
 
     private LineRenderer lr;
 
-    public void Init(List<Transform> segs, Material material)
+    public void Init(List<Transform> pts, Material lineMaterial)
     {
-        lineMaterial = material;
-        points = segs;
+        points = pts;
+        this.lineMaterial = lineMaterial;
     }
     private void Awake()
     {
@@ -23,14 +23,11 @@ public class Rope : MonoBehaviour
             return;
 
         lr = gameObject.AddComponent<LineRenderer>();
-
-        lr.material = lineMaterial;
-        lr.positionCount = points.Count;
-
         lr.useWorldSpace = true;
-
-        lr.startWidth = 0.15f;
-        lr.endWidth = 0.15f;
+        lr.positionCount = points.Count;
+        lr.material = lineMaterial;
+        lr.startWidth = 0.1f;
+        lr.endWidth = 0.1f;
         lr.generateLightingData = true;
     }
     void LateUpdate()
@@ -38,10 +35,10 @@ public class Rope : MonoBehaviour
         if (!showLineRenderers || lr == null || points == null || points.Count == 0)
             return;
 
-        UpdateLine();
+        UpdateLineRenderer();
     }
     
-    void UpdateLine()
+    void UpdateLineRenderer()
     {
         for (int i = 0; i < points.Count; i++)
             lr.SetPosition(i, points[i].position);

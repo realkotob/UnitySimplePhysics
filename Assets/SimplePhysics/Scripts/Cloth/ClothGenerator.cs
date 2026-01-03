@@ -46,7 +46,7 @@ public class ClothGenerator : MonoBehaviour
             for (int c = 0; c < cols; c++)
             {
                 var seg = Instantiate(prefab, parent.transform);
-                seg.name = $"Seg_{r:00}_{c:00}";
+                seg.name = $"Point_{r:00}_{c:00}";
 
                 seg.transform.localPosition = new Vector3(c * spacing, -r * spacing, 0f);
                 seg.transform.localRotation = Quaternion.identity;

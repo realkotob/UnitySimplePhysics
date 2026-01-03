@@ -31,10 +31,8 @@ public class Cloth : MonoBehaviour
         this.lineMaterial = lineMaterial;
         this.clothMaterial = clothMaterial;
     }
-
     public void Awake()
     {
-
         if(showLineRenderers)
             CreateLineRenderers();
 
@@ -45,73 +43,17 @@ public class Cloth : MonoBehaviour
             CreateMesh();
             UpdateMeshVertices();
         }
-
     }
-
-    
-    private void CreateMesh()
+    private void LateUpdate()
     {
-        if (rows < 2 || cols < 2)
-        {
-            Debug.LogWarning("Cloth mesh needs at least 2 rows and 2 cols.");
-            return;
-        }
+        if (showLineRenderers)
+            UpdateLineRenderers();
 
-        mesh = new Mesh();
-        mesh.name = "ClothMesh";
-
-        int vCount = rows * cols;
-        vertices = new Vector3[vCount];
-
-        int quadCount = (rows - 1) * (cols - 1);
-        triangles = new int[quadCount * 6];
-
-        int t = 0;
-        for (int r = 0; r < rows - 1; r++)
-        {
-            for (int c = 0; c < cols - 1; c++)
-            {
-                int i0 = r * cols + c;
-                int i1 = r * cols + (c + 1);
-                int i2 = (r + 1) * cols + c;
-                int i3 = (r + 1) * cols + (c + 1);
-
-                triangles[t++] = i0;
-                triangles[t++] = i2;
-                triangles[t++] = i1;
-
-                triangles[t++] = i1;
-                triangles[t++] = i2;
-                triangles[t++] = i3;
-            }
-        }
-
-        mesh.vertices = vertices;
-        mesh.triangles = triangles;
-        mesh.RecalculateNormals();
-        mesh.RecalculateBounds();
-
-        var mf = GetComponent<MeshFilter>();
-        mf.sharedMesh = mesh;
-    }
-    private void UpdateMeshVertices()
-    {
-        if (mesh == null || vertices == null) return;
-        if (points == null || points.Count != rows * cols) return;
-
-        for (int i = 0; i < vertices.Length; i++)
-        {
-            vertices[i] = transform.InverseTransformPoint(points[i].position);
-        }
-
-        mesh.vertices = vertices;
-        mesh.RecalculateNormals();
-        mesh.RecalculateBounds();
-    
-        mesh.MarkDynamic();
+        if (showMesh)
+            UpdateMeshVertices();
     }
 
-
+    // Line Renderers
     private void CreateLineRenderers()
     {
         horizontalLines = new LineRenderer[rows];
@@ -141,7 +83,7 @@ public class Cloth : MonoBehaviour
 
         return lr;
     }
-    private void updateLineRenderers()
+    private void UpdateLineRenderers()
     {
         if (points == null || points.Count == 0) return;
 
@@ -166,13 +108,67 @@ public class Cloth : MonoBehaviour
         }
     }
 
-    private void LateUpdate()
+    // Mesh
+    private void CreateMesh()
     {
-        if(showLineRenderers)
-            updateLineRenderers();
+        if (rows < 2 || cols < 2)
+        {
+            Debug.LogWarning("Cloth mesh needs at least 2 rows and 2 cols.");
+            return;
+        }
 
-        if(showMesh)
-            UpdateMeshVertices();
+        mesh = new Mesh();
+        mesh.name = "ClothMesh";
 
+        mesh.MarkDynamic();
+
+        int vCount = rows * cols;
+        vertices = new Vector3[vCount];
+
+        int quadCount = (rows - 1) * (cols - 1);
+        triangles = new int[quadCount * 6];
+
+        int t = 0;
+        for (int r = 0; r < rows - 1; r++)
+        {
+            for (int c = 0; c < cols - 1; c++)
+            {
+                int i0 = r * cols + c;
+                int i1 = r * cols + (c + 1);
+                int i2 = (r + 1) * cols + c;
+                int i3 = (r + 1) * cols + (c + 1);
+
+                triangles[t++] = i0;
+                triangles[t++] = i1;
+                triangles[t++] = i2;
+
+                triangles[t++] = i1;
+                triangles[t++] = i3;
+                triangles[t++] = i2;
+            }
+        }
+
+        mesh.vertices = vertices;
+        mesh.triangles = triangles;
+        mesh.RecalculateNormals();
+        mesh.RecalculateBounds();
+
+        var mf = GetComponent<MeshFilter>();
+        mf.sharedMesh = mesh;
     }
+    private void UpdateMeshVertices()
+    {
+        if (mesh == null || vertices == null) return;
+        if (points == null || points.Count != rows * cols) return;
+
+        for (int i = 0; i < vertices.Length; i++)
+        {
+            vertices[i] = transform.InverseTransformPoint(points[i].position);
+        }
+
+        mesh.vertices = vertices;
+        mesh.RecalculateNormals();
+        mesh.RecalculateBounds();
+    }
+
 }
