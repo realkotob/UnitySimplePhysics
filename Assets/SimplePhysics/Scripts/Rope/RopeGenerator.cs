@@ -28,7 +28,7 @@ public class RopeGenerator : MonoBehaviour
     {
         if (!prefab)
         {
-            Debug.LogError("Sphere Prefab not assigned");
+            Debug.LogError("Prefab not assigned");
             return;
         }
 
@@ -85,7 +85,6 @@ public class RopeGenerator : MonoBehaviour
         j.xMotion = ConfigurableJointMotion.Locked;
         j.yMotion = ConfigurableJointMotion.Locked;
         j.zMotion = ConfigurableJointMotion.Locked;
-
 
         j.angularXMotion = ConfigurableJointMotion.Free;
         j.angularYMotion = ConfigurableJointMotion.Free;

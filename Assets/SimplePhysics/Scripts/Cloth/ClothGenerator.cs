@@ -29,7 +29,7 @@ public class ClothGenerator : MonoBehaviour
     {
         if (!prefab)
         {
-            Debug.LogError("Sphere Prefab not assigned");
+            Debug.LogError("Prefab not assigned");
             return;
         }
 
@@ -96,7 +96,6 @@ public class ClothGenerator : MonoBehaviour
         j.xMotion = ConfigurableJointMotion.Locked;
         j.yMotion = ConfigurableJointMotion.Locked;
         j.zMotion = ConfigurableJointMotion.Locked;
-
 
         j.angularXMotion = ConfigurableJointMotion.Free;
         j.angularYMotion = ConfigurableJointMotion.Free;

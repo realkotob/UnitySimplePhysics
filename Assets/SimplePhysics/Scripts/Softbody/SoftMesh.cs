@@ -6,8 +6,11 @@ using System.Linq;
 [DisallowMultipleComponent]
 public class SoftMesh : MonoBehaviour
 {
-    [Header("Sphere")]
-    public GameObject spherePrefab;
+    [Header("Soft Mesh")]
+    public GameObject prefab;
+
+    [Header("Appearance")]
+    public bool showRBs = true;
 
     [Header("Duplicate Vertex Merge")]
     public float mergeEpsilon = 1e-5f;
@@ -15,62 +18,58 @@ public class SoftMesh : MonoBehaviour
     [Header("Joint - Linear")]
     public float linearStrength = 2000f;
     public float linearDamping = 80f;
-    public float linearMaxForce = 1e9f;
+    public float linearMaxForce = Mathf.Infinity;
 
     [Header("Joint - Angular")]
     public float angularStrength = 200f;
     public float angularDamping = 10f;
-    public float angularMaxForce = 1e9f;
+    public float angularMaxForce = Mathf.Infinity;
 
-    [Header("Joint Options")]
+    [Header("Joint - Projection")]
     public bool useProjection = true;
     public float projectionDistance = 0.01f;
     public float projectionAngle = 1f;
 
-    [Header("Mesh Deformation")]
-    public bool recalcNormals = true;
-
-    [Header("Self-Collision Ignore (MeshCollider vs own spheres)")]
+    [Header("MeshCollider & Collision Response")]
     public bool addMeshCollider = true;
     public bool meshColliderConvex = false;
-    MeshCollider _meshCollider;
-
     public int impulseNearestN = 6;
     public float impulseScale = 1f;
 
+    MeshCollider _meshCollider;
     Rigidbody[] _bodies;
 
-
-    public bool showRBs = true;
-
-
-    // runtime
     Mesh _mesh;
     int[] _triangles;
 
     int[] _originalToUnique;
     Transform[] _uniqueToSphere;
 
+
     void Awake()
     {
         BuildSoftMesh();
 
-        if(!showRBs)
+        if (addMeshCollider)
+            CreateMeshCollider();
+       
+        if (!showRBs)
             ApplyShowRBs(false);
     }
-
-
     private void LateUpdate()
     {
         DeformMesh();
-        UpdateMeshCollider();
+
+        if (addMeshCollider)
+            UpdateMeshCollider();
     }
 
+    // Build Soft Mesh
     void BuildSoftMesh()
     {
-        if (!spherePrefab)
+        if (!prefab)
         {
-            Debug.LogError("SoftMesh: spherePrefab missing", this);
+            Debug.LogError("Prefab not assigned", this);
             enabled = false;
             return;
         }
@@ -78,7 +77,7 @@ public class SoftMesh : MonoBehaviour
         var mf = GetComponent<MeshFilter>();
         if (!mf || !mf.sharedMesh)
         {
-            Debug.LogError("SoftMesh: MeshFilter missing", this);
+            Debug.LogError("MeshFilter missing", this);
             enabled = false;
             return;
         }
@@ -86,26 +85,6 @@ public class SoftMesh : MonoBehaviour
         // clone mesh (so original asset is untouched)
         _mesh = Instantiate(mf.sharedMesh);
         mf.sharedMesh = _mesh;
-
-
-        // ensure MeshCollider exists and uses runtime mesh
-        _meshCollider = GetComponent<MeshCollider>();
-        if (!_meshCollider)
-            _meshCollider = gameObject.AddComponent<MeshCollider>();
-
-        _meshCollider.sharedMesh = _mesh;
-        _meshCollider.convex = false;
-
-
-        // --- ensure MeshCollider exists and uses the runtime mesh ---
-        if (addMeshCollider)
-        {
-            var mc = GetComponent<MeshCollider>();
-            if (!mc) mc = gameObject.AddComponent<MeshCollider>();
-
-            mc.sharedMesh = _mesh;
-            mc.convex = meshColliderConvex;
-        }
 
         var baseVertices = _mesh.vertices;
         _triangles = _mesh.triangles;
@@ -116,17 +95,17 @@ public class SoftMesh : MonoBehaviour
         _uniqueToSphere = new Transform[uniquePositions.Count];
         var bodies = new Rigidbody[uniquePositions.Count];
 
-        // create spheres directly under THIS transform
+        // create spheres directly under this transform
         for (int i = 0; i < uniquePositions.Count; i++)
         {
-            var s = Instantiate(spherePrefab, transform);
+            var s = Instantiate(prefab, transform);
             s.name = $"Vtx_{i:0000}";
 
             s.transform.localPosition = uniquePositions[i];
             s.transform.localRotation = Quaternion.identity;
 
-            // ---- keep sphere scale constant (same as prefab) even if parent is scaled ----
-            Vector3 desiredWorldScale = spherePrefab.transform.lossyScale;
+            // keep sphere scale constant (same as prefab) even if parent is scaled
+            Vector3 desiredWorldScale = prefab.transform.lossyScale;
             Vector3 parentWorldScale = transform.lossyScale;
 
             // avoid divide-by-zero
@@ -149,43 +128,13 @@ public class SoftMesh : MonoBehaviour
 
         Physics.SyncTransforms();
 
-
-        if (addMeshCollider)
-        {
-            // parent colliders (includes MeshCollider you just added)
-            var parentCols = GetComponents<Collider>();
-
-            for (int i = 0; i < _uniqueToSphere.Length; i++)
-            {
-                var t = _uniqueToSphere[i];
-                if (!t) continue;
-
-                // sphere prefab might have collider on child
-                var sphereCols = t.GetComponentsInChildren<Collider>();
-
-                for (int p = 0; p < parentCols.Length; p++)
-                {
-                    var pc = parentCols[p];
-                    if (!pc) continue;
-
-                    for (int s = 0; s < sphereCols.Length; s++)
-                    {
-                        var sc = sphereCols[s];
-                        if (!sc) continue;
-
-                        Physics.IgnoreCollision(sc, pc, true);
-                    }
-                }
-            }
-        }
-
-
         var edges = BuildEdges(_triangles, _originalToUnique);
         foreach (var e in edges)
             CreateJoint(bodies[e.b], bodies[e.a]);
 
 
         _bodies = bodies;
+
     }
     void DeformMesh()
     {
@@ -197,19 +146,109 @@ public class SoftMesh : MonoBehaviour
             verts[i] = _uniqueToSphere[_originalToUnique[i]].localPosition;
 
         _mesh.vertices = verts;
+        if ((Time.frameCount & 3) == 0) _mesh.RecalculateNormals();
         _mesh.RecalculateBounds();
-        if (recalcNormals) _mesh.RecalculateNormals();
+    }
+    void CreateJoint(Rigidbody a, Rigidbody b)
+    {
+        var j = a.gameObject.AddComponent<ConfigurableJoint>();
+        j.connectedBody = b;
+        j.autoConfigureConnectedAnchor = true;
+        j.anchor = Vector3.zero;
+
+        if (useProjection)
+        {
+            j.projectionMode = JointProjectionMode.PositionAndRotation;
+            j.projectionDistance = projectionDistance;
+            j.projectionAngle = projectionAngle;
+        }
+        else
+        {
+            j.projectionMode = JointProjectionMode.None;
+        }
+
+
+        j.xMotion = ConfigurableJointMotion.Free;
+        j.yMotion = ConfigurableJointMotion.Free;
+        j.zMotion = ConfigurableJointMotion.Free;
+
+        j.angularXMotion = ConfigurableJointMotion.Free;
+        j.angularYMotion = ConfigurableJointMotion.Free;
+        j.angularZMotion = ConfigurableJointMotion.Free;
+
+        var lin = new JointDrive
+        {
+            positionSpring = linearStrength,
+            positionDamper = linearDamping,
+            maximumForce = linearMaxForce
+        };
+
+        j.xDrive = lin;
+        j.yDrive = lin;
+        j.zDrive = lin;
+
+        j.targetPosition = Vector3.zero;
+
+
+        j.rotationDriveMode = RotationDriveMode.Slerp;
+
+        j.slerpDrive = new JointDrive
+        {
+            positionSpring = angularStrength,
+            positionDamper = angularDamping,
+            maximumForce = angularMaxForce
+        };
+
+        j.targetRotation = Quaternion.identity;
     }
 
+    // MeshCollider
+    void CreateMeshCollider()
+    {
+        _meshCollider = GetComponent<MeshCollider>();
+        if (!_meshCollider)
+            _meshCollider = gameObject.AddComponent<MeshCollider>();
+
+        _meshCollider.sharedMesh = _mesh;
+        _meshCollider.convex = meshColliderConvex;
+
+
+        // parent colliders (includes MeshCollider you just added)
+        var parentCols = GetComponents<Collider>();
+
+        for (int i = 0; i < _uniqueToSphere.Length; i++)
+        {
+            var t = _uniqueToSphere[i];
+            if (!t) continue;
+
+            // sphere prefab might have collider on child
+            var sphereCols = t.GetComponentsInChildren<Collider>();
+
+            for (int p = 0; p < parentCols.Length; p++)
+            {
+                var pc = parentCols[p];
+                if (!pc) continue;
+
+                for (int s = 0; s < sphereCols.Length; s++)
+                {
+                    var sc = sphereCols[s];
+                    if (!sc) continue;
+
+                    Physics.IgnoreCollision(sc, pc, true);
+                }
+            }
+        }
+    }
     void UpdateMeshCollider()
     {
         if (_meshCollider == null || _mesh == null)
             return;
 
-        // Force PhysX to rebuild collision mesh
         _meshCollider.sharedMesh = null;
         _meshCollider.sharedMesh = _mesh;
     }
+
+    // Appearance
     private void ApplyShowRBs(bool visible)
     {
         if (_uniqueToSphere == null || _uniqueToSphere.Length == 0) return;
@@ -226,64 +265,7 @@ public class SoftMesh : MonoBehaviour
         }
     }
 
-
-    // ---------------- Joints ----------------
-    void CreateJoint(Rigidbody self, Rigidbody other)
-    {
-        var j = self.gameObject.AddComponent<ConfigurableJoint>();
-        j.connectedBody = other;
-
-        j.autoConfigureConnectedAnchor = true;
-        j.anchor = Vector3.zero;
-
-        j.xMotion = ConfigurableJointMotion.Free;
-        j.yMotion = ConfigurableJointMotion.Free;
-        j.zMotion = ConfigurableJointMotion.Free;
-
-        j.angularXMotion = ConfigurableJointMotion.Free;
-        j.angularYMotion = ConfigurableJointMotion.Free;
-        j.angularZMotion = ConfigurableJointMotion.Free;
-
-        j.enableCollision = false;
-
-        if (useProjection)
-        {
-            j.projectionMode = JointProjectionMode.PositionAndRotation;
-            j.projectionDistance = projectionDistance;
-            j.projectionAngle = projectionAngle;
-        }
-        else
-        {
-            j.projectionMode = JointProjectionMode.None;
-        }
-
-        var lin = new JointDrive
-        {
-            positionSpring = linearStrength,
-            positionDamper = linearDamping,
-            maximumForce = linearMaxForce
-        };
-
-        j.xDrive = lin;
-        j.yDrive = lin;
-        j.zDrive = lin;
-
-        // rest pose = current configuration
-        j.targetPosition = Vector3.zero;
-
-        j.rotationDriveMode = RotationDriveMode.Slerp;
-
-        j.slerpDrive = new JointDrive
-        {
-            positionSpring = angularStrength,
-            positionDamper = angularDamping,
-            maximumForce = angularMaxForce
-        };
-
-        j.targetRotation = Quaternion.identity;
-    }
-
-    // ---------------- Mesh topology ----------------
+    // Unique Edges and Vertices
     struct Edge
     {
         public int a, b;
@@ -336,6 +318,7 @@ public class SoftMesh : MonoBehaviour
         for (int i = 0; i < verts.Length; i++)
         {
             int found = -1;
+
             for (int u = 0; u < uniqueVerts.Count; u++)
             {
                 if ((uniqueVerts[u] - verts[i]).sqrMagnitude <= epsSqr)
@@ -355,10 +338,8 @@ public class SoftMesh : MonoBehaviour
         }
     }
 
-
-    // --------------- Collision Response ----------------
+    // Collision Response for MeshCollider
     void OnCollisionEnter(Collision c) => RelayImpulse(c);
-    //void OnCollisionStay(Collision c) => RelayImpulse(c);
     void RelayImpulse(Collision c)
     {
         if (_bodies == null || _bodies.Length == 0) return;
@@ -384,11 +365,10 @@ public class SoftMesh : MonoBehaviour
         }
     }
 
-
-    // ---------------- Gizmos ----------------
+    // Visualize in Editor
     private void OnDrawGizmosSelected()
     {
-        if (!spherePrefab) return;
+        if (!prefab) return;
 
         var mf = GetComponent<MeshFilter>();
         if (!mf) return;
@@ -402,7 +382,7 @@ public class SoftMesh : MonoBehaviour
         Gizmos.color = Color.cyan;
 
         // radius based purely on prefab lossyScale (world scale)
-        float radius = spherePrefab.transform.lossyScale.x * 0.5f;
+        float radius = prefab.transform.lossyScale.x * 0.5f;
 
         // draw for every vertex (duplicates included)
         for (int i = 0; i < verts.Length; i++)
