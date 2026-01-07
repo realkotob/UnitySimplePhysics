@@ -1,3 +1,4 @@
+using System.Threading.Tasks;
 using UnityEngine;
 
 
@@ -44,6 +45,10 @@ public class SoftMesh : MonoBehaviour
 
     private void OnCollisionEnter(Collision collision)
     {
+        Debug.Log(collision.impulse.magnitude);
+
+        Rigidbody rb = GetComponent<Rigidbody>();
+
         if (collision.contactCount == 0)
             return;
 
@@ -68,26 +73,33 @@ public class SoftMesh : MonoBehaviour
     {
         Vector3 nWS = impactNormalWS.normalized;
 
-        for (int i = 0; i < deformedVertices.Length; i++)
+        // Cache matrices once (value copies, thread-safe)
+        Matrix4x4 localToWorld = transform.localToWorldMatrix;
+        Matrix4x4 worldToLocal = transform.worldToLocalMatrix;
+
+        Vector3[] verts = deformedVertices;
+
+        Parallel.For(0, verts.Length, i =>
         {
-            Vector3 vLS = deformedVertices[i];
-            Vector3 vWS = transform.TransformPoint(vLS);
+            Vector3 vLS = verts[i];
+            Vector3 vWS = localToWorld.MultiplyPoint3x4(vLS);  // Transform vertex from local space to world space
 
-            float dist = Vector3.Distance(vWS, impactPointWS);
+            float dist = Vector3.Distance(vWS, impactPointWS); // Compute distance in world space
             if (dist > maxDistance)
-                continue;
+                return;
 
-            // 0..1 in WORLD
-            float t = Mathf.Clamp01(dist / maxDistance);
+            
+            float t = Mathf.Clamp01(dist / maxDistance);            // Normalize distance to 0..1 range      
+            float w = Mathf.SmoothStep(1f, 0f, t);                  // Smooth radial falloff (1 at center, 0 at edge)        
+            float displacement = strength * w;                      // Compute displacement in world units          
+            Vector3 vWSDeformed = vWS - nWS * displacement;         // Apply deformation along the impact normal (world space)           
+            verts[i] = worldToLocal.MultiplyPoint3x4(vWSDeformed);  // Transform back from world space to local space
 
-            float w = Mathf.SmoothStep(1f, 0f, t);
-            float displacement = strength * w;
-            Vector3 vWSDeformed = vWS - nWS * displacement;
+        });
 
-            // world -> local
-            deformedVertices[i] = transform.InverseTransformPoint(vWSDeformed);
-        }
+        deformedVertices = verts;
 
+        // Upload modified vertices to the mesh (main thread only)
         mesh.vertices = deformedVertices;
         mesh.RecalculateNormals();
         mesh.RecalculateBounds();
