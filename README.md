@@ -5,7 +5,7 @@ This project provides a collection of physics-based behaviors for Unity, includi
 The focus is on **simplicity and usability**, aiming for **minimal authoring effort** while keeping the systems **easy to understand, modify, and integrate** into existing projects.
 
 
----
+
 
 ## 🪢 Rope
 **Using Rigidbodies and ConfigurableJoints**
@@ -17,7 +17,7 @@ The runtime `Rope` component handles visualization by collecting the generated s
 
 ▶ **Demo:** https://www.youtube.com/shorts/QTXzCxIQ-xY
 
----
+
 
 ## 🧵 Cloth
 **Using Rigidbodies and ConfigurableJoints**
@@ -32,7 +32,7 @@ It can render the cloth as a wireframe using line renderers or as a dynamically 
 
 ![Cloth Image](Images/Cloth.png)
 
----
+
 
 ## 🧽 SoftMeshLight
 **Lightweight, impulse-based static mesh deformation**
@@ -47,7 +47,7 @@ The mesh collider can optionally be updated so that visual deformation and colli
 
 ![SoftMeshLight Image](Images/SoftMeshLight.png)
 
----
+
 
 ## 🧽➕ SoftMesh (Coming Soon)
 **Elastic and dynamic soft-body deformation**
@@ -55,7 +55,7 @@ The mesh collider can optionally be updated so that visual deformation and colli
 SoftMesh is an improved version of SoftMeshLight and aims to support non-static, elastic deformations.  
 Unlike SoftMeshLight, which applies permanent dents, SoftMesh is intended to allow meshes to recover over time and respond dynamically, enabling jelly-like behavior.
 
----
+
 
 ## 🧠 SoftBody (Work in Progress)
 **Joint-based volumetric soft body using mesh topology**
