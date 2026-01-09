@@ -1,28 +1,28 @@
 #pragma kernel Simulate
 #pragma kernel ApplyImpact
+#pragma kernel CheckActivity
 
+// Buffers
 StructuredBuffer<float3> _Rest;
 RWStructuredBuffer<float3> _Target;
 RWStructuredBuffer<float3> _Pos;
 RWStructuredBuffer<float3> _Vel;
-
-
-
+RWStructuredBuffer<uint> _ActiveFlag;
 uint _VertexCount;
 
+// impact params
+float3 _ImpactPointLS;
+float3 _PushDirLS;
+float3 _AbsScale;
+float _Dent;
+float _Kick;
+float _MaxDistanceWS;
+
+// Spring params
 float _DT;
 float _SpringK;
 float _Damping;
 
-// impact params
-float3 _ImpactPointWS;
-float3 _PushDirWS;
-float _Strength;
-float _Kick;
-float _MaxDistance;
-
-float4x4 _L2W;
-float4x4 _W2L;
 
 [numthreads(256, 1, 1)]
 void Simulate(uint3 id : SV_DispatchThreadID)
@@ -59,28 +59,42 @@ void ApplyImpact(uint3 id : SV_DispatchThreadID)
 
     float3 xLS = _Pos[i];
 
-    // local -> world
-    float3 xWS = mul(_L2W, float4(xLS, 1.0)).xyz;
+    // Local-space delta
+    float3 dLS = xLS - _ImpactPointLS;
 
-    float dist = distance(xWS, _ImpactPointWS);
-    if (dist > _MaxDistance)
+    // Approximate world-space distance using absolute scale
+    // This keeps the deformation radius independent of transform scale
+    float3 dWS = dLS * _AbsScale;
+    float distWS = length(dWS);
+
+    if (distWS > _MaxDistanceWS)
         return;
 
-    // Falloff
-    float t = saturate(dist / _MaxDistance);
+    // Smooth falloff based on world-space distance
+    float t = saturate(distWS / _MaxDistanceWS);
     float w = 1.0 - t;
-    w = w * w * (3.0 - 2.0 * w); // SmoothStep
+    w = w * w * (3.0 - 2.0 * w); // smoothstep
 
-    // 1) TARGET OFFSET (Delle)
-    // direction in local space
-    float3 pushDirLS = mul((float3x3) _W2L, _PushDirWS);
+    float3 pushDirLS = normalize(_PushDirLS);
 
-    // absolute dent offset (NICHT velocity-basiert!)
-    float3 targetOffsetLS = pushDirLS * (w * _Strength);
+    // Apply target offset and velocity impulse in local space
+    _Target[i] -= pushDirLS * (_Dent * w);
+    _Vel[i] -= pushDirLS * (_Kick * w);
+}
 
-    _Target[i] -= targetOffsetLS;
+[numthreads(256, 1, 1)]
+void CheckActivity(uint3 id : SV_DispatchThreadID)
+{
+    uint i = id.x;
+    if (i >= _VertexCount)
+        return;
 
-    // 2) OPTIONAL: Velocity Wobble
-    float3 velKickLS = pushDirLS * (_Kick * w);
-    _Vel[i] -= velKickLS;
+    float3 v = _Vel[i];
+    float speedSq = dot(v, v);
+
+    // hardcoded threshold
+    if (speedSq > 0.001 * 0.001)
+    {
+        InterlockedOr(_ActiveFlag[0], 1);
+    }
 }

@@ -168,16 +168,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   compute: {fileID: 7200000, guid: f4fdde561a6fad14ea8c41d4c993b746, type: 3}
   minImpactImpulse: 20
-  strength: 0
-  impactVelocity: 15
+  dent: 0.05
+  kick: 1.5
   maxDistance: 2
   deformLayers:
     serializedVersion: 2
     m_Bits: 256
-  springK: 100
+  springStiffness: 50
   damping: 2
   updateCollider: 0
-  cpuApplyEveryNFrames: 10
   reset: 0
 --- !u!64 &106814562
 MeshCollider:
@@ -363,7 +362,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &235797004
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -378,16 +377,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   compute: {fileID: 7200000, guid: f4fdde561a6fad14ea8c41d4c993b746, type: 3}
   minImpactImpulse: 20
-  strength: 0.5
-  impactVelocity: 0
+  dent: 0.05
+  kick: 1.5
   maxDistance: 1
   deformLayers:
     serializedVersion: 2
     m_Bits: 256
-  springK: 200
+  springStiffness: 50
   damping: 5
   updateCollider: 0
-  cpuApplyEveryNFrames: 10
   reset: 0
 --- !u!54 &235797005
 Rigidbody:
@@ -886,16 +884,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   compute: {fileID: 7200000, guid: f4fdde561a6fad14ea8c41d4c993b746, type: 3}
   minImpactImpulse: 20
-  strength: 0
-  impactVelocity: 5
+  dent: 0.05
+  kick: 1.5
   maxDistance: 1
   deformLayers:
     serializedVersion: 2
     m_Bits: 256
-  springK: 100
+  springStiffness: 50
   damping: 2
   updateCollider: 0
-  cpuApplyEveryNFrames: 10
   reset: 0
 --- !u!54 &465542845
 Rigidbody:
@@ -1443,16 +1440,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   compute: {fileID: 7200000, guid: f4fdde561a6fad14ea8c41d4c993b746, type: 3}
   minImpactImpulse: 20
-  strength: 0
-  impactVelocity: 15
+  dent: 0.05
+  kick: 1.5
   maxDistance: 1.5
   deformLayers:
     serializedVersion: 2
     m_Bits: 256
-  springK: 100
+  springStiffness: 50
   damping: 2
   updateCollider: 0
-  cpuApplyEveryNFrames: 10
   reset: 0
 --- !u!54 &620374701
 Rigidbody:
@@ -1606,16 +1602,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   compute: {fileID: 7200000, guid: f4fdde561a6fad14ea8c41d4c993b746, type: 3}
   minImpactImpulse: 20
-  strength: 0.5
-  impactVelocity: 0
+  dent: 0.05
+  kick: 10
   maxDistance: 1
   deformLayers:
     serializedVersion: 2
     m_Bits: 256
-  springK: 200
+  springStiffness: 50
   damping: 5
   updateCollider: 0
-  cpuApplyEveryNFrames: 10
   reset: 0
 --- !u!54 &645883159
 Rigidbody:
@@ -1728,8 +1723,8 @@ Transform:
   m_GameObject: {fileID: 645883157}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 3.5, y: 3.11, z: -0.75}
-  m_LocalScale: {x: 3, y: 3, z: 3}
+  m_LocalPosition: {x: 3.5, y: 4.02, z: -0.75}
+  m_LocalScale: {x: 3, y: 1.14978, z: 3}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
@@ -2030,16 +2025,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   compute: {fileID: 7200000, guid: f4fdde561a6fad14ea8c41d4c993b746, type: 3}
   minImpactImpulse: 20
-  strength: 0.5
-  impactVelocity: 0
+  dent: 0.05
+  kick: 1.5
   maxDistance: 1
   deformLayers:
     serializedVersion: 2
     m_Bits: 256
-  springK: 200
+  springStiffness: 50
   damping: 5
   updateCollider: 0
-  cpuApplyEveryNFrames: 10
   reset: 0
 --- !u!54 &1061522804
 Rigidbody:
@@ -2154,6 +2148,168 @@ Transform:
   m_LocalRotation: {x: 0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: -10.46, y: 6.1899996, z: -1.76}
   m_LocalScale: {x: 2, y: 2, z: 0.1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1084450691
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1084450697}
+  - component: {fileID: 1084450696}
+  - component: {fileID: 1084450695}
+  - component: {fileID: 1084450694}
+  - component: {fileID: 1084450693}
+  - component: {fileID: 1084450692}
+  m_Layer: 0
+  m_Name: Cube40Sub (7)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1084450692
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1084450691}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8df98b77731401e4a9fa582b0799fac5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  compute: {fileID: 7200000, guid: f4fdde561a6fad14ea8c41d4c993b746, type: 3}
+  minImpactImpulse: 20
+  dent: 0.05
+  kick: 10
+  maxDistance: 1
+  deformLayers:
+    serializedVersion: 2
+    m_Bits: 256
+  springStiffness: 50
+  damping: 5
+  updateCollider: 0
+  reset: 0
+--- !u!54 &1084450693
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1084450691}
+  serializedVersion: 4
+  m_Mass: 80
+  m_Drag: 0
+  m_AngularDrag: 0.05
+  m_CenterOfMass: {x: 0, y: 0, z: 0}
+  m_InertiaTensor: {x: 1, y: 1, z: 1}
+  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ImplicitCom: 1
+  m_ImplicitTensor: 1
+  m_UseGravity: 1
+  m_IsKinematic: 1
+  m_Interpolate: 1
+  m_Constraints: 0
+  m_CollisionDetection: 0
+--- !u!64 &1084450694
+MeshCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1084450691}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 5
+  m_Convex: 1
+  m_CookingOptions: 30
+  m_Mesh: {fileID: -5495902117074765545, guid: 42ae2d2e72ef9b646bfccda0d82d79f3, type: 3}
+--- !u!23 &1084450695
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1084450691}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: 4a602ee759a3c9f4da4a2788e977a1ff, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!33 &1084450696
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1084450691}
+  m_Mesh: {fileID: -5495902117074765545, guid: 42ae2d2e72ef9b646bfccda0d82d79f3, type: 3}
+--- !u!4 &1084450697
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1084450691}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: -4.36, y: 4.02, z: -0.75}
+  m_LocalScale: {x: 3, y: 3, z: 3}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
@@ -2310,16 +2466,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   compute: {fileID: 7200000, guid: f4fdde561a6fad14ea8c41d4c993b746, type: 3}
   minImpactImpulse: 20
-  strength: 0
-  impactVelocity: 10
+  dent: 0.05
+  kick: 1.5
   maxDistance: 1.5
   deformLayers:
     serializedVersion: 2
     m_Bits: 256
-  springK: 100
+  springStiffness: 50
   damping: 2
   updateCollider: 0
-  cpuApplyEveryNFrames: 10
   reset: 0
 --- !u!64 &1236791435
 MeshCollider:
@@ -3169,7 +3324,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &1696468165
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3184,16 +3339,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   compute: {fileID: 7200000, guid: f4fdde561a6fad14ea8c41d4c993b746, type: 3}
   minImpactImpulse: 20
-  strength: 0
-  impactVelocity: 10
+  dent: 0.05
+  kick: 1.5
   maxDistance: 1
   deformLayers:
     serializedVersion: 2
     m_Bits: 256
-  springK: 200
+  springStiffness: 50
   damping: 5
   updateCollider: 0
-  cpuApplyEveryNFrames: 10
   reset: 0
 --- !u!54 &1696468166
 Rigidbody:
@@ -3457,16 +3611,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   compute: {fileID: 7200000, guid: f4fdde561a6fad14ea8c41d4c993b746, type: 3}
   minImpactImpulse: 20
-  strength: 0
-  impactVelocity: 5
+  dent: 0.05
+  kick: 1.5
   maxDistance: 1
   deformLayers:
     serializedVersion: 2
     m_Bits: 256
-  springK: 100
+  springStiffness: 50
   damping: 2
   updateCollider: 0
-  cpuApplyEveryNFrames: 10
   reset: 0
 --- !u!54 &1860521664
 Rigidbody:
@@ -3619,16 +3772,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   compute: {fileID: 7200000, guid: f4fdde561a6fad14ea8c41d4c993b746, type: 3}
   minImpactImpulse: 20
-  strength: 0.5
-  impactVelocity: 0
+  dent: 0.05
+  kick: 1.5
   maxDistance: 1
   deformLayers:
     serializedVersion: 2
     m_Bits: 256
-  springK: 200
+  springStiffness: 50
   damping: 5
   updateCollider: 0
-  cpuApplyEveryNFrames: 10
   reset: 0
 --- !u!64 &2025665736
 MeshCollider:
@@ -3761,16 +3913,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   compute: {fileID: 7200000, guid: f4fdde561a6fad14ea8c41d4c993b746, type: 3}
   minImpactImpulse: 20
-  strength: 0.5
-  impactVelocity: 0
+  dent: 0.05
+  kick: 1.5
   maxDistance: 1
   deformLayers:
     serializedVersion: 2
     m_Bits: 256
-  springK: 200
+  springStiffness: 50
   damping: 5
   updateCollider: 0
-  cpuApplyEveryNFrames: 10
   reset: 0
 --- !u!54 &2072515881
 Rigidbody:
@@ -4067,6 +4218,7 @@ SceneRoots:
   - {fileID: 1377591198}
   - {fileID: 1696468170}
   - {fileID: 645883163}
+  - {fileID: 1084450697}
   - {fileID: 235797009}
   - {fileID: 1097671840}
   - {fileID: 465542849}
