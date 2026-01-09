@@ -2,8 +2,11 @@
 #pragma kernel ApplyImpact
 
 StructuredBuffer<float3> _Rest;
+RWStructuredBuffer<float3> _Target;
 RWStructuredBuffer<float3> _Pos;
 RWStructuredBuffer<float3> _Vel;
+
+
 
 uint _VertexCount;
 
@@ -14,6 +17,7 @@ float _Damping;
 // impact params
 float3 _ImpactPointWS;
 float3 _PushDirWS;
+float _Strength;
 float _Kick;
 float _MaxDistance;
 
@@ -28,11 +32,11 @@ void Simulate(uint3 id : SV_DispatchThreadID)
         return;
 
     float3 x = _Pos[i];
-    float3 x0 = _Rest[i];
+    float3 xT = _Target[i];
     float3 v = _Vel[i];
 
     // F = -k(x-x0) - c v
-    float3 springForce = -_SpringK * (x - x0);
+    float3 springForce = -_SpringK * (x - xT);
     float3 dampingForce = -_Damping * v;
 
     
@@ -56,22 +60,27 @@ void ApplyImpact(uint3 id : SV_DispatchThreadID)
     float3 xLS = _Pos[i];
 
     // local -> world
-    float4 xWS4 = mul(_L2W, float4(xLS, 1.0));
-    float3 xWS = xWS4.xyz;
+    float3 xWS = mul(_L2W, float4(xLS, 1.0)).xyz;
 
     float dist = distance(xWS, _ImpactPointWS);
     if (dist > _MaxDistance)
         return;
 
+    // Falloff
     float t = saturate(dist / _MaxDistance);
-    // SmoothStep(1->0)
-    float w = (1.0 - t);
-    w = w * w * (3.0 - 2.0 * w);
+    float w = 1.0 - t;
+    w = w * w * (3.0 - 2.0 * w); // SmoothStep
 
-    float3 dvWS = _PushDirWS * (_Kick * w);
+    // 1) TARGET OFFSET (Delle)
+    // direction in local space
+    float3 pushDirLS = mul((float3x3) _W2L, _PushDirWS);
 
-    // world vector -> local vector
-    float3 dvLS = mul((float3x3) _W2L, dvWS);
+    // absolute dent offset (NICHT velocity-basiert!)
+    float3 targetOffsetLS = pushDirLS * (w * _Strength);
 
-    _Vel[i] -= dvLS;
+    _Target[i] -= targetOffsetLS;
+
+    // 2) OPTIONAL: Velocity Wobble
+    float3 velKickLS = pushDirLS * (_Kick * w);
+    _Vel[i] -= velKickLS;
 }

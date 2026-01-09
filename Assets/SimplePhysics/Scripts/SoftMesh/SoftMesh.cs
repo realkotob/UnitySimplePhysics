@@ -10,6 +10,7 @@ public class SoftMesh : MonoBehaviour
 
     [Header("Impact")]
     public float minImpactImpulse = 0.5f;
+    public float strength = 0.05f;
     public float impactVelocity = 1.5f;
     public float maxDistance = 1.0f;
     public LayerMask deformLayers;
@@ -29,7 +30,7 @@ public class SoftMesh : MonoBehaviour
     MeshCollider mc;
     Mesh mesh;
 
-    ComputeBuffer restBuf, posBuf, velBuf;
+    ComputeBuffer restBuf, targetBuf, posBuf, velBuf;
 
     int kSimulate, kImpact;
     int vertexCount;
@@ -56,8 +57,10 @@ public class SoftMesh : MonoBehaviour
         restBuf = new ComputeBuffer(vertexCount, sizeof(float) * 3);
         posBuf = new ComputeBuffer(vertexCount, sizeof(float) * 3);
         velBuf = new ComputeBuffer(vertexCount, sizeof(float) * 3);
+        targetBuf = new ComputeBuffer(vertexCount, sizeof(float) * 3);
 
         restBuf.SetData(rest);
+        targetBuf.SetData(rest);
         posBuf.SetData(rest);
         velBuf.SetData(new Vector3[vertexCount]);
 
@@ -72,17 +75,20 @@ public class SoftMesh : MonoBehaviour
     void BindCommon(int kernel)
     {
         compute.SetBuffer(kernel, "_Rest", restBuf);
+        compute.SetBuffer(kernel, "_Target", targetBuf);
         compute.SetBuffer(kernel, "_Pos", posBuf);
         compute.SetBuffer(kernel, "_Vel", velBuf);
         compute.SetInt("_VertexCount", vertexCount);
-    }
 
+    }
     void OnDestroy()
     {
         restBuf?.Release();
+        targetBuf?.Release();
         posBuf?.Release();
         velBuf?.Release();
     }
+
 
     void Update()
     {
@@ -118,18 +124,24 @@ public class SoftMesh : MonoBehaviour
     }
     void ResetState()
     {
-        var rest = mesh.vertices; // Achtung: wenn Mesh schon deformiert ist, nimm lieber cached Rest!
-        // Besser: Rest einmal aus Awake cachen. Hier einfach robust:
+        // Rest auf CPU holen (oder besser: cachedRest benutzen)
         restBuf.GetData(cpuVerts);
-        posBuf.SetData(cpuVerts);
-        velBuf.SetData(new Vector3[vertexCount]);
+
+        targetBuf.SetData(cpuVerts);             // Target = Rest
+        posBuf.SetData(cpuVerts);                // Pos = Rest
+        velBuf.SetData(new Vector3[vertexCount]); // Vel = 0
 
         mesh.vertices = cpuVerts;
         mesh.RecalculateNormals();
         mesh.RecalculateBounds();
-        mc.sharedMesh = null;
-        mc.sharedMesh = mesh;
+
+        if (mc != null)
+        {
+            mc.sharedMesh = null;
+            mc.sharedMesh = mesh;
+        }
     }
+
 
     void Dispatch(int kernel)
     {
@@ -149,14 +161,14 @@ public class SoftMesh : MonoBehaviour
         Vector3 pushDirWS = -cp.normal.normalized;
 
         //float kick = impactVelocity * c.impulse.magnitude;
-        float kick = impactVelocity;
+        float kick = impactVelocity;   // velocity kick
+        float dent = strength;         // target-offset strength
 
-        ApplyImpactGPU(impactPointWS, pushDirWS, kick);
+        ApplyImpactGPU(impactPointWS, pushDirWS, kick, dent);
     }
 
-    void ApplyImpactGPU(Vector3 impactPointWS, Vector3 pushDirWS, float kick)
+    void ApplyImpactGPU(Vector3 impactPointWS, Vector3 pushDirWS, float kick, float dent)
     {
-        // Matrices an GPU geben (Impact braucht world-distances)
         Matrix4x4 l2w = transform.localToWorldMatrix;
         Matrix4x4 w2l = transform.worldToLocalMatrix;
 
@@ -166,8 +178,10 @@ public class SoftMesh : MonoBehaviour
         compute.SetVector("_ImpactPointWS", impactPointWS);
         compute.SetVector("_PushDirWS", pushDirWS);
         compute.SetFloat("_Kick", kick);
+        compute.SetFloat("_Strength", dent);
         compute.SetFloat("_MaxDistance", maxDistance);
 
         Dispatch(kImpact);
     }
+
 }
