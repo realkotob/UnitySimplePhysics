@@ -232,7 +232,7 @@ public class SoftMesh : MonoBehaviour
         compute.SetInt("_VertexCount", vertexCount);
 
     }
-    
+
 
 
 
