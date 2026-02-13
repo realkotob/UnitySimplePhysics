@@ -215,7 +215,7 @@ public class SoftBody : MonoBehaviour
         _meshCollider.convex = meshColliderConvex;
 
 
-        // parent colliders (includes MeshCollider you just added)
+        // parent colliders (includes MeshCollider that was just added)
         var parentCols = GetComponents<Collider>();
 
         for (int i = 0; i < _uniqueToSphere.Length; i++)

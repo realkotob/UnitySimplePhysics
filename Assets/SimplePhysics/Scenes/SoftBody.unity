@@ -1503,6 +1503,10 @@ PrefabInstance:
       propertyPath: mass
       value: 30
       objectReference: {fileID: 0}
+    - target: {fileID: 8158200325309894644, guid: 74266f20df2f5b94dbde08d2ca14d77b, type: 3}
+      propertyPath: projectilePrefab
+      value: 
+      objectReference: {fileID: 8135264133238253126, guid: bfd2cac5f99c4a642b40cc2f119fe583, type: 3}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
