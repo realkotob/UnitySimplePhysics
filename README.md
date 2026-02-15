@@ -6,7 +6,6 @@ The focus is on **simplicity and usability**, aiming for **minimal authoring eff
 
 
 
-
 ## 🪢 Rope
 **Using Rigidbodies and ConfigurableJoints**
 
@@ -57,10 +56,10 @@ Unlike SoftMeshLight, which applies permanent dents, SoftMesh is intended to all
 
 
 
-## 🧠 SoftBody (Work in Progress)
+## 🧠 SoftBody
 **Joint-based volumetric soft body using mesh topology**
 
-SoftBody is an experimental soft-body implementation that derives its simulation structure directly from a mesh.  
+SoftBody is an soft-body implementation that derives its simulation structure directly from a mesh.  
 At runtime, the mesh is cloned and its vertices are merged to remove duplicates. For each unique vertex, a prefab `Rigidbody` is instantiated and positioned at the corresponding vertex location.
 
 Edges are extracted from the mesh triangles, and `ConfigurableJoints` are created between rigidbodies that share an edge. These joints use linear and angular drives to approximate elastic behavior based on the original mesh topology.
@@ -68,6 +67,20 @@ Edges are extracted from the mesh triangles, and `ConfigurableJoints` are create
 Each frame, the mesh is deformed by updating its vertices from the current rigidbody positions.  
 An optional mesh collider can be generated and updated dynamically, and collision impulses can be relayed back to nearby rigidbodies to improve interaction with external objects.
 
-This system is still a work in progress and primarily serves as a foundation for more robust volumetric soft-body behavior.
-
 ![SoftBody Image](Images/SoftBody.png)
+
+
+
+## 🎈 ClothBalloon
+**SoftBody variant with internal pressure forces**
+
+ClothBalloon works like SoftBody, deriving its simulation structure from a mesh by creating `rigidbodies` per unique vertex and connecting them using `ConfigurableJoint`s.
+
+In addition, the current mesh volume is evaluated each physics step and used to apply outward pressure forces to all surface triangles, allowing the object to inflate, compress, and behave like a balloon.
+
+Mesh deformation, optional collider updates, and collision impulse handling work the same way as in SoftBody.
+
+![SoftBody Image](Images/ClothBallon.gif)
+
+
+
