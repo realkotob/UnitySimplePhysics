@@ -13,7 +13,6 @@ public class EmbeddedSoftBody : MonoBehaviour
 
     [Header("Prefab")]
     public GameObject prefab;
-    public bool keepPrefabWorldScale = true;
 
     [Header("Neighbors")]
     [Min(1)] public int neighborCount = 6;
@@ -31,12 +30,12 @@ public class EmbeddedSoftBody : MonoBehaviour
     public float projectionDistance = 0.01f;
     public float projectionAngle = 1f;
 
-    [Header("Embedding / Skinning (Paper-style)")]
+
+    [Header("Embedding / Skinning")]
     [Range(1, 4)] public int maxInfluences = 4;
     public float weightFalloffEps = 1e-4f;
-    public bool deformMesh = true;
 
-    // outputs (runtime only)
+
     public List<Vector3> pointsLocal = new List<Vector3>();
     public List<Transform> pointTransforms = new List<Transform>();
     public HashSet<Edge> edges = new HashSet<Edge>();
@@ -55,7 +54,7 @@ public class EmbeddedSoftBody : MonoBehaviour
         public override int GetHashCode() { unchecked { return (a * 397) ^ b; } }
     }
 
-    // runtime state
+
     Transform _pointsRoot;
     Rigidbody[] _bodies;
 
@@ -85,12 +84,12 @@ public class EmbeddedSoftBody : MonoBehaviour
             return;
         }
 
-        // clone mesh so we don't touch asset
+        // clone mesh so asset is not modified at runtime
         _mesh = Instantiate(mf.sharedMesh);
         mf.sharedMesh = _mesh;
         _restVertsLocal = _mesh.vertices;
 
-        // build everything once at runtime
+        // build soft body once at runtime
         BuildPoissonPointsLocal();
         InstantiatePrefabs();
         CacheParticleRestPose();
@@ -103,7 +102,6 @@ public class EmbeddedSoftBody : MonoBehaviour
 
     void LateUpdate()
     {
-        if (!deformMesh) return;
         if (_mesh == null || _restVertsLocal == null) return;
         if (_bindIdx == null || _bindW == null) return;
         if (pointTransforms == null || pointTransforms.Count == 0) return;
@@ -172,6 +170,43 @@ public class EmbeddedSoftBody : MonoBehaviour
         for (int i = 0; i < pointsWorld.Count; i++)
             pointsLocal.Add(tr.InverseTransformPoint(pointsWorld[i]));
     }
+    static float[] BuildTriangleAreaCDF(Vector3[] verts, int[] tris, out float totalArea)
+    {
+        int triCount = tris.Length / 3;
+        float[] cdf = new float[triCount];
+
+        totalArea = 0f;
+        for (int k = 0; k < triCount; k++)
+        {
+            Vector3 a = verts[tris[k * 3 + 0]];
+            Vector3 b = verts[tris[k * 3 + 1]];
+            Vector3 c = verts[tris[k * 3 + 2]];
+
+            float area = 0.5f * Vector3.Cross(b - a, c - a).magnitude;
+            totalArea += area;
+            cdf[k] = totalArea;
+        }
+
+        if (totalArea > 0f)
+            for (int k = 0; k < triCount; k++)
+                cdf[k] /= totalArea;
+
+        return cdf;
+    }
+    static int PickTriangleIndex(float[] cdf, float u01)
+    {
+        int idx = Array.BinarySearch(cdf, u01);
+        if (idx < 0) idx = ~idx;
+        if (idx >= cdf.Length) idx = cdf.Length - 1;
+        return idx;
+    }
+    static Vector3 SamplePointInTriangle(Vector3 a, Vector3 b, Vector3 c)
+    {
+        float u = UnityEngine.Random.value;
+        float v = UnityEngine.Random.value;
+        if (u + v > 1f) { u = 1f - u; v = 1f - v; }
+        return a + u * (b - a) + v * (c - a);
+    }
 
     // ------------------------------------------------------------
     // Step 2: Instantiate prefabs + rigidbodies
@@ -179,8 +214,7 @@ public class EmbeddedSoftBody : MonoBehaviour
     void InstantiatePrefabs()
     {
         // create container
-        var rootGO = new GameObject("__ESB_Points");
-        rootGO.transform.SetParent(transform, false);
+        var rootGO = gameObject;
         _pointsRoot = rootGO.transform;
 
         pointTransforms.Clear();
@@ -197,14 +231,13 @@ public class EmbeddedSoftBody : MonoBehaviour
             go.transform.localPosition = pointsLocal[i];
             go.transform.localRotation = Quaternion.identity;
 
-            if (keepPrefabWorldScale)
-            {
-                go.transform.localScale = new Vector3(
-                    parentWorldScale.x != 0f ? desiredWorldScale.x / parentWorldScale.x : desiredWorldScale.x,
-                    parentWorldScale.y != 0f ? desiredWorldScale.y / parentWorldScale.y : desiredWorldScale.y,
-                    parentWorldScale.z != 0f ? desiredWorldScale.z / parentWorldScale.z : desiredWorldScale.z
-                );
-            }
+
+            go.transform.localScale = new Vector3(
+                parentWorldScale.x != 0f ? desiredWorldScale.x / parentWorldScale.x : desiredWorldScale.x,
+                parentWorldScale.y != 0f ? desiredWorldScale.y / parentWorldScale.y : desiredWorldScale.y,
+                parentWorldScale.z != 0f ? desiredWorldScale.z / parentWorldScale.z : desiredWorldScale.z
+            );
+
 
             var rb = go.GetComponent<Rigidbody>();
             if (!rb) rb = go.AddComponent<Rigidbody>();
@@ -236,7 +269,7 @@ public class EmbeddedSoftBody : MonoBehaviour
     }
 
     // ------------------------------------------------------------
-    // Step 4: Bind mesh verts -> up to 4 nearest particles (paper)
+    // Step 4: Bind mesh verts -> up to 4 nearest particles
     // ------------------------------------------------------------
     void BakeBinding()
     {
@@ -251,6 +284,7 @@ public class EmbeddedSoftBody : MonoBehaviour
         {
             Vector3 vRestW = transform.TransformPoint(_restVertsLocal[vi]);
 
+            // find k nearest particles
             int[] bestIdx = new int[k];
             float[] bestD2 = new float[k];
             for (int a = 0; a < k; a++) { bestIdx[a] = -1; bestD2[a] = float.PositiveInfinity; }
@@ -270,6 +304,7 @@ public class EmbeddedSoftBody : MonoBehaviour
                 }
             }
 
+            // convert to weights with optional falloff
             float sum = 0f;
             for (int a = 0; a < k; a++)
             {
@@ -363,7 +398,6 @@ public class EmbeddedSoftBody : MonoBehaviour
 
         Physics.SyncTransforms();
     }
-
     void CreateJoint(Rigidbody a, Rigidbody b)
     {
         var j = a.gameObject.AddComponent<ConfigurableJoint>();
@@ -413,8 +447,10 @@ public class EmbeddedSoftBody : MonoBehaviour
         j.targetRotation = Quaternion.identity;
     }
 
+
+
     // ------------------------------------------------------------
-    // Runtime deformation (paper-style linear blend skinning)
+    // Runtime deformation
     // ------------------------------------------------------------
     void DeformMeshSkinned()
     {
@@ -449,46 +485,5 @@ public class EmbeddedSoftBody : MonoBehaviour
         _mesh.RecalculateBounds();
     }
 
-    // ------------------------------------------------------------
-    // Poisson helpers
-    // ------------------------------------------------------------
-    static float[] BuildTriangleAreaCDF(Vector3[] verts, int[] tris, out float totalArea)
-    {
-        int triCount = tris.Length / 3;
-        float[] cdf = new float[triCount];
 
-        totalArea = 0f;
-        for (int k = 0; k < triCount; k++)
-        {
-            Vector3 a = verts[tris[k * 3 + 0]];
-            Vector3 b = verts[tris[k * 3 + 1]];
-            Vector3 c = verts[tris[k * 3 + 2]];
-
-            float area = 0.5f * Vector3.Cross(b - a, c - a).magnitude;
-            totalArea += area;
-            cdf[k] = totalArea;
-        }
-
-        if (totalArea > 0f)
-            for (int k = 0; k < triCount; k++)
-                cdf[k] /= totalArea;
-
-        return cdf;
-    }
-
-    static int PickTriangleIndex(float[] cdf, float u01)
-    {
-        int idx = Array.BinarySearch(cdf, u01);
-        if (idx < 0) idx = ~idx;
-        if (idx >= cdf.Length) idx = cdf.Length - 1;
-        return idx;
-    }
-
-    static Vector3 SamplePointInTriangle(Vector3 a, Vector3 b, Vector3 c)
-    {
-        float u = UnityEngine.Random.value;
-        float v = UnityEngine.Random.value;
-        if (u + v > 1f) { u = 1f - u; v = 1f - v; }
-        return a + u * (b - a) + v * (c - a);
-    }
 }

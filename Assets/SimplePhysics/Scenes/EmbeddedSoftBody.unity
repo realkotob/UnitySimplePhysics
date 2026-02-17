@@ -1402,6 +1402,18 @@ PrefabInstance:
       value: 30
       objectReference: {fileID: 0}
     - target: {fileID: 8158200325309894644, guid: 74266f20df2f5b94dbde08d2ca14d77b, type: 3}
+      propertyPath: scale.x
+      value: 1.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 8158200325309894644, guid: 74266f20df2f5b94dbde08d2ca14d77b, type: 3}
+      propertyPath: scale.y
+      value: 1.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 8158200325309894644, guid: 74266f20df2f5b94dbde08d2ca14d77b, type: 3}
+      propertyPath: scale.z
+      value: 1.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 8158200325309894644, guid: 74266f20df2f5b94dbde08d2ca14d77b, type: 3}
       propertyPath: projectilePrefab
       value: 
       objectReference: {fileID: 8135264133238253126, guid: bfd2cac5f99c4a642b40cc2f119fe583, type: 3}
@@ -1790,7 +1802,7 @@ MonoBehaviour:
   prefab: {fileID: 150804141180431412, guid: 5de7de799cd6c004da83e7a2a5066b20, type: 3}
   keepPrefabWorldScale: 1
   neighborCount: 5
-  linearStrength: 500
+  linearStrength: 1000
   linearDamping: 10
   linearMaxForce: Infinity
   angularStrength: 750
