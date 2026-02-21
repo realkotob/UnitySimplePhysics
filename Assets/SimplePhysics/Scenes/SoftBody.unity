@@ -560,7 +560,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &579778212
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -574,7 +574,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   prefab: {fileID: 150804141180431412, guid: 98ff7fc833faabd4c93292457bcc5ee8, type: 3}
-  showRBs: 0
+  showRBs: 1
   mergeEpsilon: 0.00001
   linearStrength: 500
   linearDamping: 0
@@ -676,7 +676,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &633127934
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -690,7 +690,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   prefab: {fileID: 150804141180431412, guid: 98ff7fc833faabd4c93292457bcc5ee8, type: 3}
-  showRBs: 0
+  showRBs: 1
   mergeEpsilon: 0.00001
   linearStrength: 500
   linearDamping: 0
@@ -872,7 +872,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &1699604116
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -886,7 +886,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   prefab: {fileID: 150804141180431412, guid: 98ff7fc833faabd4c93292457bcc5ee8, type: 3}
-  showRBs: 0
+  showRBs: 1
   mergeEpsilon: 0.00001
   linearStrength: 500
   linearDamping: 0
@@ -988,7 +988,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &1965186334
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1002,7 +1002,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   prefab: {fileID: 150804141180431412, guid: 98ff7fc833faabd4c93292457bcc5ee8, type: 3}
-  showRBs: 0
+  showRBs: 1
   mergeEpsilon: 0.00001
   linearStrength: 500
   linearDamping: 0
@@ -1104,7 +1104,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &1969123588
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1118,7 +1118,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   prefab: {fileID: 150804141180431412, guid: 98ff7fc833faabd4c93292457bcc5ee8, type: 3}
-  showRBs: 0
+  showRBs: 1
   mergeEpsilon: 0.00001
   linearStrength: 500
   linearDamping: 0
@@ -1333,7 +1333,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   prefab: {fileID: 150804141180431412, guid: 98ff7fc833faabd4c93292457bcc5ee8, type: 3}
-  showRBs: 0
+  showRBs: 1
   mergeEpsilon: 0.00001
   linearStrength: 500
   linearDamping: 0
@@ -1415,7 +1415,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &1129652520731235211
 Transform:
   m_ObjectHideFlags: 0
@@ -1670,7 +1670,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!23 &3815844602471339024
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -1729,7 +1729,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   prefab: {fileID: 150804141180431412, guid: 98ff7fc833faabd4c93292457bcc5ee8, type: 3}
-  showRBs: 0
+  showRBs: 1
   mergeEpsilon: 0.00001
   linearStrength: 500
   linearDamping: 0
@@ -1781,7 +1781,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   prefab: {fileID: 150804141180431412, guid: 98ff7fc833faabd4c93292457bcc5ee8, type: 3}
-  showRBs: 0
+  showRBs: 1
   mergeEpsilon: 0.00001
   linearStrength: 500
   linearDamping: 0
@@ -1815,7 +1815,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &4469595589713041242
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1829,7 +1829,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   prefab: {fileID: 150804141180431412, guid: 98ff7fc833faabd4c93292457bcc5ee8, type: 3}
-  showRBs: 0
+  showRBs: 1
   mergeEpsilon: 0.00001
   linearStrength: 500
   linearDamping: 0
@@ -1934,7 +1934,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &9110243970354401258
 Transform:
   m_ObjectHideFlags: 0
@@ -1963,7 +1963,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   prefab: {fileID: 150804141180431412, guid: 98ff7fc833faabd4c93292457bcc5ee8, type: 3}
-  showRBs: 0
+  showRBs: 1
   mergeEpsilon: 0.00001
   linearStrength: 500
   linearDamping: 0

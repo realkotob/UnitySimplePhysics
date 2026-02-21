@@ -30,11 +30,9 @@ public class EmbeddedSoftBody : MonoBehaviour
     public float projectionDistance = 0.01f;
     public float projectionAngle = 1f;
 
-
     [Header("Embedding / Skinning")]
     [Range(1, 4)] public int maxInfluences = 4;
     public float weightFalloffEps = 1e-4f;
-
 
     public List<Vector3> pointsLocal = new List<Vector3>();
     public List<Transform> pointTransforms = new List<Transform>();
@@ -54,7 +52,6 @@ public class EmbeddedSoftBody : MonoBehaviour
         public override int GetHashCode() { unchecked { return (a * 397) ^ b; } }
     }
 
-
     Transform _pointsRoot;
     Rigidbody[] _bodies;
 
@@ -67,37 +64,74 @@ public class EmbeddedSoftBody : MonoBehaviour
     int[] _bindIdx;
     float[] _bindW;
 
-    void Start()
+    // ============================================================
+    // Context menus
+    // ============================================================
+
+    [ContextMenu("EmbeddedSoftBody/Instantiate Prefabs")]
+    void CM_InstantiatePrefabs()
     {
         if (!prefab)
         {
             Debug.LogError("EmbeddedSoftBody: Prefab not assigned.", this);
-            enabled = false;
             return;
         }
 
-        var mf = GetComponent<MeshFilter>();
-        if (!mf || !mf.sharedMesh)
-        {
-            Debug.LogError("EmbeddedSoftBody: MeshFilter missing or has no mesh.", this);
-            enabled = false;
-            return;
-        }
+        EnsureMeshClone();
+        ClearExistingPointsAndJoints();
 
-        // clone mesh so asset is not modified at runtime
-        _mesh = Instantiate(mf.sharedMesh);
-        mf.sharedMesh = _mesh;
-        _restVertsLocal = _mesh.vertices;
-
-        // build soft body once at runtime
         BuildPoissonPointsLocal();
-        InstantiatePrefabs();
-        CacheParticleRestPose();
-        BakeBinding();
+        InstantiatePrefabs(); // creates pointTransforms + _bodies
+
+        Debug.Log($"Instantiate Prefabs done: points={pointTransforms.Count}, verts={_restVertsLocal?.Length ?? 0}");
+    }
+
+    [ContextMenu("EmbeddedSoftBody/Instantiate ConfigurableJoints")]
+    void CM_InstantiateJoints()
+    {
+        EnsureMeshClone();
+        GatherExistingPoints(); // in case prefabs already exist
+
+        if (_bodies == null || _bodies.Length == 0)
+        {
+            Debug.LogWarning("EmbeddedSoftBody: No points/bodies found. Run 'Instantiate Prefabs' first.");
+            return;
+        }
+
+        ClearExistingJointsOnly();
+
         BuildEdgesByKNN();
         CreateJointsFromEdges();
 
-        Debug.Log($"EmbeddedSoftBody runtime init: points={pointsLocal.Count}, edges={edges.Count}, verts={_restVertsLocal.Length}");
+        Debug.Log($"Instantiate Joints done: edges={edges.Count}");
+    }
+
+    // ============================================================
+    // Runtime
+    // ============================================================
+
+    void Start()
+    {
+        EnsureMeshClone();
+
+        // Only gather existing points and prepare binding/rest data
+        GatherExistingPoints();
+
+        if (pointTransforms.Count > 0)
+        {
+            CacheParticleRestPose();
+            BakeBinding();
+        }
+
+        // Count all ConfigurableJoints on direct children 
+        int jointCount = 0;
+        for (int i = 0; i < transform.childCount; i++)
+        {
+            jointCount += transform.GetChild(i).GetComponents<ConfigurableJoint>().Length;
+        }
+
+
+        Debug.Log($"EmbeddedSoftBody Start: points={pointTransforms.Count}, edges={jointCount}, verts={_restVertsLocal?.Length ?? 0}");
     }
 
     void LateUpdate()
@@ -108,6 +142,97 @@ public class EmbeddedSoftBody : MonoBehaviour
         if (_restParticlePosW == null || _restParticleRotW == null) return;
 
         DeformMeshSkinned();
+    }
+
+    // ============================================================
+    // Helpers
+    // ============================================================
+
+    void EnsureMeshClone()
+    {
+        var mf = GetComponent<MeshFilter>();
+        if (!mf || !mf.sharedMesh)
+        {
+            Debug.LogError("EmbeddedSoftBody: MeshFilter missing or has no mesh.", this);
+            return;
+        }
+
+        if (_mesh == null)
+        {
+            // Clone mesh so the asset is not modified at runtime
+            _mesh = Instantiate(mf.sharedMesh);
+            _mesh.name = mf.name;
+            mf.sharedMesh = _mesh;
+            _restVertsLocal = _mesh.vertices;
+        }
+        else if (_restVertsLocal == null || _restVertsLocal.Length == 0)
+        {
+            _restVertsLocal = _mesh.vertices;
+        }
+    }
+
+    void GatherExistingPoints()
+    {
+        _pointsRoot = transform;
+
+        pointTransforms.Clear();
+        pointsLocal.Clear();
+
+        // Simple rule: every direct child with a Rigidbody counts as a point
+        var bodies = new List<Rigidbody>();
+        for (int i = 0; i < transform.childCount; i++)
+        {
+            var ch = transform.GetChild(i);
+            var rb = ch.GetComponent<Rigidbody>();
+            if (!rb) continue;
+
+            pointTransforms.Add(ch);
+            pointsLocal.Add(ch.localPosition);
+            bodies.Add(rb);
+        }
+
+        _bodies = bodies.ToArray();
+    }
+
+    void ClearExistingPointsAndJoints()
+    {
+        // Remove all children (points) and therefore their joints
+        for (int i = transform.childCount - 1; i >= 0; i--)
+        {
+            var ch = transform.GetChild(i);
+
+            // Editor vs Play Mode destruction
+            if (!Application.isPlaying) DestroyImmediate(ch.gameObject);
+            else Destroy(ch.gameObject);
+        }
+
+        pointTransforms.Clear();
+        pointsLocal.Clear();
+        edges.Clear();
+
+        _bodies = null;
+        _restParticlePosW = null;
+        _restParticleRotW = null;
+        _bindIdx = null;
+        _bindW = null;
+    }
+
+    void ClearExistingJointsOnly()
+    {
+        // Remove only joints from the point objects
+        for (int i = 0; i < pointTransforms.Count; i++)
+        {
+            var t = pointTransforms[i];
+            if (!t) continue;
+
+            var joints = t.GetComponents<ConfigurableJoint>();
+            for (int j = 0; j < joints.Length; j++)
+            {
+                // Editor vs Play Mode destruction
+                if (!Application.isPlaying) DestroyImmediate(joints[j]);
+                else Destroy(joints[j]);
+            }
+        }
     }
 
     // ------------------------------------------------------------
@@ -170,6 +295,7 @@ public class EmbeddedSoftBody : MonoBehaviour
         for (int i = 0; i < pointsWorld.Count; i++)
             pointsLocal.Add(tr.InverseTransformPoint(pointsWorld[i]));
     }
+
     static float[] BuildTriangleAreaCDF(Vector3[] verts, int[] tris, out float totalArea)
     {
         int triCount = tris.Length / 3;
@@ -193,6 +319,7 @@ public class EmbeddedSoftBody : MonoBehaviour
 
         return cdf;
     }
+
     static int PickTriangleIndex(float[] cdf, float u01)
     {
         int idx = Array.BinarySearch(cdf, u01);
@@ -200,6 +327,7 @@ public class EmbeddedSoftBody : MonoBehaviour
         if (idx >= cdf.Length) idx = cdf.Length - 1;
         return idx;
     }
+
     static Vector3 SamplePointInTriangle(Vector3 a, Vector3 b, Vector3 c)
     {
         float u = UnityEngine.Random.value;
@@ -213,9 +341,7 @@ public class EmbeddedSoftBody : MonoBehaviour
     // ------------------------------------------------------------
     void InstantiatePrefabs()
     {
-        // create container
-        var rootGO = gameObject;
-        _pointsRoot = rootGO.transform;
+        _pointsRoot = transform;
 
         pointTransforms.Clear();
         pointTransforms.Capacity = pointsLocal.Count;
@@ -231,13 +357,11 @@ public class EmbeddedSoftBody : MonoBehaviour
             go.transform.localPosition = pointsLocal[i];
             go.transform.localRotation = Quaternion.identity;
 
-
             go.transform.localScale = new Vector3(
                 parentWorldScale.x != 0f ? desiredWorldScale.x / parentWorldScale.x : desiredWorldScale.x,
                 parentWorldScale.y != 0f ? desiredWorldScale.y / parentWorldScale.y : desiredWorldScale.y,
                 parentWorldScale.z != 0f ? desiredWorldScale.z / parentWorldScale.z : desiredWorldScale.z
             );
-
 
             var rb = go.GetComponent<Rigidbody>();
             if (!rb) rb = go.AddComponent<Rigidbody>();
@@ -273,6 +397,9 @@ public class EmbeddedSoftBody : MonoBehaviour
     // ------------------------------------------------------------
     void BakeBinding()
     {
+        if (_restVertsLocal == null || _restVertsLocal.Length == 0) return;
+        if (pointTransforms == null || pointTransforms.Count == 0) return;
+
         int vCount = _restVertsLocal.Length;
         int pCount = pointTransforms.Count;
         int k = Mathf.Clamp(maxInfluences, 1, 4);
@@ -284,7 +411,7 @@ public class EmbeddedSoftBody : MonoBehaviour
         {
             Vector3 vRestW = transform.TransformPoint(_restVertsLocal[vi]);
 
-            // find k nearest particles
+            // Find k nearest particles
             int[] bestIdx = new int[k];
             float[] bestD2 = new float[k];
             for (int a = 0; a < k; a++) { bestIdx[a] = -1; bestD2[a] = float.PositiveInfinity; }
@@ -304,7 +431,7 @@ public class EmbeddedSoftBody : MonoBehaviour
                 }
             }
 
-            // convert to weights with optional falloff
+            // Convert distances to normalized weights
             float sum = 0f;
             for (int a = 0; a < k; a++)
             {
@@ -398,6 +525,7 @@ public class EmbeddedSoftBody : MonoBehaviour
 
         Physics.SyncTransforms();
     }
+
     void CreateJoint(Rigidbody a, Rigidbody b)
     {
         var j = a.gameObject.AddComponent<ConfigurableJoint>();
@@ -447,8 +575,6 @@ public class EmbeddedSoftBody : MonoBehaviour
         j.targetRotation = Quaternion.identity;
     }
 
-
-
     // ------------------------------------------------------------
     // Runtime deformation
     // ------------------------------------------------------------
@@ -483,6 +609,37 @@ public class EmbeddedSoftBody : MonoBehaviour
         _mesh.vertices = deformed;
         if ((Time.frameCount & 3) == 0) _mesh.RecalculateNormals();
         _mesh.RecalculateBounds();
+    }
+
+
+
+    // ------------------------------------------------------------
+    // Debug visualization of joints in editor
+    // ------------------------------------------------------------
+    void OnDrawGizmosSelected()
+    {
+        Gizmos.color = Color.cyan;
+
+        // Iterate over all direct children
+        for (int i = 0; i < transform.childCount; i++)
+        {
+            var child = transform.GetChild(i);
+
+            // Get all ConfigurableJoints on this child
+            var joints = child.GetComponents<ConfigurableJoint>();
+            for (int j = 0; j < joints.Length; j++)
+            {
+                var joint = joints[j];
+                if (!joint) continue;
+                if (!joint.connectedBody) continue;
+
+                // Draw line between this rigidbody and the connected body
+                Gizmos.DrawLine(
+                    joint.transform.position,
+                    joint.connectedBody.transform.position
+                );
+            }
+        }
     }
 
 
