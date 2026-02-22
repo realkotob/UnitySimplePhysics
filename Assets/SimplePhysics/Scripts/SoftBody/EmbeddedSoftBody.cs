@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 [DisallowMultipleComponent]
@@ -37,6 +38,15 @@ public class EmbeddedSoftBody : MonoBehaviour
     [Header("Hierarchy")]
     public string pointsContainerName = "SoftBodyPoints";
 
+    [Header("MeshCollider & Collision Response")]
+    public bool addMeshCollider = true;
+    public bool meshColliderConvex = false;
+    public bool relayCollisionImpulse = true;
+    public int impulseNearestN = 3;
+    public float impulseScale = 0.2f;
+
+    MeshCollider _meshCollider;
+
     public List<Vector3> pointsLocal = new List<Vector3>();
     public List<Transform> pointTransforms = new List<Transform>();
     public HashSet<Edge> edges = new HashSet<Edge>();
@@ -71,7 +81,7 @@ public class EmbeddedSoftBody : MonoBehaviour
     // Context menus
     // ============================================================
 
-    [ContextMenu("EmbeddedSoftBody/Instantiate Prefabs")]
+    [ContextMenu("Instantiate Prefabs")]
     void CM_InstantiatePrefabs()
     {
         if (!prefab)
@@ -86,10 +96,20 @@ public class EmbeddedSoftBody : MonoBehaviour
         BuildPoissonPointsLocal();
         InstantiatePrefabs(); // creates pointTransforms + _bodies
 
+        if (addMeshCollider)
+        {
+            CreateMeshCollider();
+            UpdateMeshCollider();
+        }
+        else
+        {
+            RemoveMeshColliderIfAny();
+        }
+
         Debug.Log($"Instantiate Prefabs done: points={pointTransforms.Count}, verts={_restVertsLocal?.Length ?? 0}");
     }
 
-    [ContextMenu("EmbeddedSoftBody/Instantiate ConfigurableJoints")]
+    [ContextMenu("Instantiate ConfigurableJoints")]
     void CM_InstantiateJoints()
     {
         EnsureMeshClone();
@@ -109,15 +129,22 @@ public class EmbeddedSoftBody : MonoBehaviour
         Debug.Log($"Instantiate Joints done: edges={edges.Count}");
     }
 
+    [ContextMenu("Clear Points and Joints")]
+    void CM_ClearPointsAndJoints()
+    {
+        ClearExistingPointsAndJoints();
+        RemoveMeshColliderIfAny();
+        Debug.Log("Cleared all points and joints.");
+    }
+
+
     // ============================================================
     // Runtime
     // ============================================================
-
     void Start()
     {
         EnsureMeshClone();
 
-        // Only gather existing points and prepare binding/rest data
         GatherExistingPoints();
 
         if (pointTransforms.Count > 0)
@@ -126,14 +153,16 @@ public class EmbeddedSoftBody : MonoBehaviour
             BakeBinding();
         }
 
-        // Count all ConfigurableJoints on point children inside container
+        if (addMeshCollider)
+            CreateMeshCollider();
+        else
+            RemoveMeshColliderIfAny();
+
         int jointCount = 0;
         if (_pointsRoot != null)
         {
             for (int i = 0; i < _pointsRoot.childCount; i++)
-            {
                 jointCount += _pointsRoot.GetChild(i).GetComponents<ConfigurableJoint>().Length;
-            }
         }
 
         Debug.Log($"EmbeddedSoftBody Start: points={pointTransforms.Count}, edges={jointCount}, verts={_restVertsLocal?.Length ?? 0}");
@@ -147,12 +176,15 @@ public class EmbeddedSoftBody : MonoBehaviour
         if (_restParticlePosW == null || _restParticleRotW == null) return;
 
         DeformMeshSkinned();
+
+        if (addMeshCollider)
+            UpdateMeshCollider();
     }
+
 
     // ============================================================
     // Helpers
     // ============================================================
-
     Transform GetOrCreatePointsRoot()
     {
         var existing = transform.Find(pointsContainerName);
@@ -177,7 +209,6 @@ public class EmbeddedSoftBody : MonoBehaviour
 
         if (_mesh == null)
         {
-            // Clone mesh so the asset is not modified at runtime
             _mesh = Instantiate(mf.sharedMesh);
             _mesh.name = mf.name;
             mf.sharedMesh = _mesh;
@@ -196,7 +227,6 @@ public class EmbeddedSoftBody : MonoBehaviour
         pointTransforms.Clear();
         pointsLocal.Clear();
 
-        // Simple rule: every child of container with a Rigidbody counts as a point
         var bodies = new List<Rigidbody>();
         for (int i = 0; i < _pointsRoot.childCount; i++)
         {
@@ -216,12 +246,9 @@ public class EmbeddedSoftBody : MonoBehaviour
     {
         _pointsRoot = GetOrCreatePointsRoot();
 
-        // Remove all children (points) inside container and therefore their joints
         for (int i = _pointsRoot.childCount - 1; i >= 0; i--)
         {
             var ch = _pointsRoot.GetChild(i);
-
-            // Editor vs Play Mode destruction
             if (!Application.isPlaying) DestroyImmediate(ch.gameObject);
             else Destroy(ch.gameObject);
         }
@@ -239,7 +266,6 @@ public class EmbeddedSoftBody : MonoBehaviour
 
     void ClearExistingJointsOnly()
     {
-        // Remove only joints from the point objects
         for (int i = 0; i < pointTransforms.Count; i++)
         {
             var t = pointTransforms[i];
@@ -248,12 +274,12 @@ public class EmbeddedSoftBody : MonoBehaviour
             var joints = t.GetComponents<ConfigurableJoint>();
             for (int j = 0; j < joints.Length; j++)
             {
-                // Editor vs Play Mode destruction
                 if (!Application.isPlaying) DestroyImmediate(joints[j]);
                 else Destroy(joints[j]);
             }
         }
     }
+
 
     // ------------------------------------------------------------
     // Step 1: Poisson on surface -> pointsLocal
@@ -356,6 +382,7 @@ public class EmbeddedSoftBody : MonoBehaviour
         return a + u * (b - a) + v * (c - a);
     }
 
+
     // ------------------------------------------------------------
     // Step 2: Instantiate prefabs + rigidbodies
     // ------------------------------------------------------------
@@ -396,6 +423,7 @@ public class EmbeddedSoftBody : MonoBehaviour
         Physics.SyncTransforms();
     }
 
+
     // ------------------------------------------------------------
     // Step 3: Rest pose for skinning
     // ------------------------------------------------------------
@@ -411,6 +439,7 @@ public class EmbeddedSoftBody : MonoBehaviour
             _restParticleRotW[i] = pointTransforms[i].rotation;
         }
     }
+
 
     // ------------------------------------------------------------
     // Step 4: Bind mesh verts -> up to 4 nearest particles
@@ -431,7 +460,6 @@ public class EmbeddedSoftBody : MonoBehaviour
         {
             Vector3 vRestW = transform.TransformPoint(_restVertsLocal[vi]);
 
-            // Find k nearest particles
             int[] bestIdx = new int[k];
             float[] bestD2 = new float[k];
             for (int a = 0; a < k; a++) { bestIdx[a] = -1; bestD2[a] = float.PositiveInfinity; }
@@ -451,7 +479,6 @@ public class EmbeddedSoftBody : MonoBehaviour
                 }
             }
 
-            // Convert distances to normalized weights
             float sum = 0f;
             for (int a = 0; a < k; a++)
             {
@@ -482,6 +509,7 @@ public class EmbeddedSoftBody : MonoBehaviour
             }
         }
     }
+
 
     // ------------------------------------------------------------
     // Step 5: Build edges by KNN (index-based)
@@ -527,6 +555,7 @@ public class EmbeddedSoftBody : MonoBehaviour
             }
         }
     }
+
 
     // ------------------------------------------------------------
     // Step 6: ConfigurableJoints from edges
@@ -595,6 +624,97 @@ public class EmbeddedSoftBody : MonoBehaviour
         j.targetRotation = Quaternion.identity;
     }
 
+
+    // ------------------------------------------------------------
+    // MeshCollider
+    // ------------------------------------------------------------
+    void CreateMeshCollider()
+    {
+        if (_mesh == null) return;
+
+        _meshCollider = GetComponent<MeshCollider>();
+        if (!_meshCollider)
+            _meshCollider = gameObject.AddComponent<MeshCollider>();
+
+        _meshCollider.sharedMesh = _mesh;
+        _meshCollider.convex = meshColliderConvex;
+
+        // parent colliders (includes MeshCollider that was just added)
+        var parentCols = GetComponents<Collider>();
+
+        for (int i = 0; i < pointTransforms.Count; i++)
+        {
+            var t = pointTransforms[i];
+            if (!t) continue;
+
+            var sphereCols = t.GetComponentsInChildren<Collider>();
+
+            for (int p = 0; p < parentCols.Length; p++)
+            {
+                var pc = parentCols[p];
+                if (!pc) continue;
+
+                for (int s = 0; s < sphereCols.Length; s++)
+                {
+                    var sc = sphereCols[s];
+                    if (!sc) continue;
+
+                    Physics.IgnoreCollision(sc, pc, true);
+                }
+            }
+        }
+    }
+
+    void UpdateMeshCollider()
+    {
+        if (_meshCollider == null || _mesh == null)
+            return;
+
+        _meshCollider.sharedMesh = null;
+        _meshCollider.sharedMesh = _mesh;
+    }
+
+    void RemoveMeshColliderIfAny()
+    {
+        var mc = GetComponent<MeshCollider>();
+        if (!mc) { _meshCollider = null; return; }
+
+        if (!Application.isPlaying) DestroyImmediate(mc);
+        else Destroy(mc);
+
+        _meshCollider = null;
+    }
+
+    // Collision Response for MeshCollider
+    void OnCollisionEnter(Collision c)
+    {
+        if (relayCollisionImpulse) RelayImpulse(c);
+    }
+
+    void RelayImpulse(Collision c)
+    {
+        if (_bodies == null || _bodies.Length == 0) return;
+        if (c.contactCount == 0) return;
+
+        Vector3 impulse = c.impulse * impulseScale;
+        if (impulse.sqrMagnitude < 1e-8f) return;
+
+        Vector3 p = c.contacts[0].point;
+
+        int n = Mathf.Min(impulseNearestN, _bodies.Length);
+
+        var nearest = _bodies
+            .Where(rb => rb != null && !rb.isKinematic)
+            .OrderBy(rb => (rb.worldCenterOfMass - p).sqrMagnitude)
+            .Take(n);
+
+        Vector3 per = impulse / n;
+
+        foreach (var rb in nearest)
+            rb.AddForceAtPosition(-per, p, ForceMode.Impulse);
+    }
+
+
     // ------------------------------------------------------------
     // Runtime deformation
     // ------------------------------------------------------------
@@ -631,6 +751,7 @@ public class EmbeddedSoftBody : MonoBehaviour
         _mesh.RecalculateBounds();
     }
 
+
     // ------------------------------------------------------------
     // Debug visualization of joints in editor
     // ------------------------------------------------------------
@@ -659,4 +780,7 @@ public class EmbeddedSoftBody : MonoBehaviour
             }
         }
     }
+
+
+
 }
