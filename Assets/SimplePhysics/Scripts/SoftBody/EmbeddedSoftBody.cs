@@ -34,6 +34,9 @@ public class EmbeddedSoftBody : MonoBehaviour
     [Range(1, 4)] public int maxInfluences = 4;
     public float weightFalloffEps = 1e-4f;
 
+    [Header("Hierarchy")]
+    public string pointsContainerName = "SoftBodyPoints";
+
     public List<Vector3> pointsLocal = new List<Vector3>();
     public List<Transform> pointTransforms = new List<Transform>();
     public HashSet<Edge> edges = new HashSet<Edge>();
@@ -123,13 +126,15 @@ public class EmbeddedSoftBody : MonoBehaviour
             BakeBinding();
         }
 
-        // Count all ConfigurableJoints on direct children 
+        // Count all ConfigurableJoints on point children inside container
         int jointCount = 0;
-        for (int i = 0; i < transform.childCount; i++)
+        if (_pointsRoot != null)
         {
-            jointCount += transform.GetChild(i).GetComponents<ConfigurableJoint>().Length;
+            for (int i = 0; i < _pointsRoot.childCount; i++)
+            {
+                jointCount += _pointsRoot.GetChild(i).GetComponents<ConfigurableJoint>().Length;
+            }
         }
-
 
         Debug.Log($"EmbeddedSoftBody Start: points={pointTransforms.Count}, edges={jointCount}, verts={_restVertsLocal?.Length ?? 0}");
     }
@@ -147,6 +152,19 @@ public class EmbeddedSoftBody : MonoBehaviour
     // ============================================================
     // Helpers
     // ============================================================
+
+    Transform GetOrCreatePointsRoot()
+    {
+        var existing = transform.Find(pointsContainerName);
+        if (existing) return existing;
+
+        var go = new GameObject(pointsContainerName);
+        go.transform.SetParent(transform, false);
+        go.transform.localPosition = Vector3.zero;
+        go.transform.localRotation = Quaternion.identity;
+        go.transform.localScale = Vector3.one;
+        return go.transform;
+    }
 
     void EnsureMeshClone()
     {
@@ -173,16 +191,16 @@ public class EmbeddedSoftBody : MonoBehaviour
 
     void GatherExistingPoints()
     {
-        _pointsRoot = transform;
+        _pointsRoot = GetOrCreatePointsRoot();
 
         pointTransforms.Clear();
         pointsLocal.Clear();
 
-        // Simple rule: every direct child with a Rigidbody counts as a point
+        // Simple rule: every child of container with a Rigidbody counts as a point
         var bodies = new List<Rigidbody>();
-        for (int i = 0; i < transform.childCount; i++)
+        for (int i = 0; i < _pointsRoot.childCount; i++)
         {
-            var ch = transform.GetChild(i);
+            var ch = _pointsRoot.GetChild(i);
             var rb = ch.GetComponent<Rigidbody>();
             if (!rb) continue;
 
@@ -196,10 +214,12 @@ public class EmbeddedSoftBody : MonoBehaviour
 
     void ClearExistingPointsAndJoints()
     {
-        // Remove all children (points) and therefore their joints
-        for (int i = transform.childCount - 1; i >= 0; i--)
+        _pointsRoot = GetOrCreatePointsRoot();
+
+        // Remove all children (points) inside container and therefore their joints
+        for (int i = _pointsRoot.childCount - 1; i >= 0; i--)
         {
-            var ch = transform.GetChild(i);
+            var ch = _pointsRoot.GetChild(i);
 
             // Editor vs Play Mode destruction
             if (!Application.isPlaying) DestroyImmediate(ch.gameObject);
@@ -341,7 +361,7 @@ public class EmbeddedSoftBody : MonoBehaviour
     // ------------------------------------------------------------
     void InstantiatePrefabs()
     {
-        _pointsRoot = transform;
+        _pointsRoot = GetOrCreatePointsRoot();
 
         pointTransforms.Clear();
         pointTransforms.Capacity = pointsLocal.Count;
@@ -611,8 +631,6 @@ public class EmbeddedSoftBody : MonoBehaviour
         _mesh.RecalculateBounds();
     }
 
-
-
     // ------------------------------------------------------------
     // Debug visualization of joints in editor
     // ------------------------------------------------------------
@@ -620,12 +638,13 @@ public class EmbeddedSoftBody : MonoBehaviour
     {
         Gizmos.color = Color.cyan;
 
-        // Iterate over all direct children
-        for (int i = 0; i < transform.childCount; i++)
-        {
-            var child = transform.GetChild(i);
+        var root = transform.Find(pointsContainerName);
+        if (!root) return;
 
-            // Get all ConfigurableJoints on this child
+        for (int i = 0; i < root.childCount; i++)
+        {
+            var child = root.GetChild(i);
+
             var joints = child.GetComponents<ConfigurableJoint>();
             for (int j = 0; j < joints.Length; j++)
             {
@@ -633,7 +652,6 @@ public class EmbeddedSoftBody : MonoBehaviour
                 if (!joint) continue;
                 if (!joint.connectedBody) continue;
 
-                // Draw line between this rigidbody and the connected body
                 Gizmos.DrawLine(
                     joint.transform.position,
                     joint.connectedBody.transform.position
@@ -641,6 +659,4 @@ public class EmbeddedSoftBody : MonoBehaviour
             }
         }
     }
-
-
 }
